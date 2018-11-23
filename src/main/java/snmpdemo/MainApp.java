@@ -29,14 +29,14 @@ public class MainApp {
 //			agent.unregisterManagedObject(agent.getSnmpv2MIB());
 
 			MOTableBuilder builder = new MOTableBuilder(new OID(".1.3.6.1.2.1.2.2.1"))
-					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_OCTET_STRING, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_GAUGE32, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_OCTET_STRING, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_ONLY)
-					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_ONLY)
+					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_OCTET_STRING, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_GAUGE32, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_OCTET_STRING, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_WRITE)
+					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_WRITE)
 					// Row 0
 					.addRowValue(new Integer32(1)).addRowValue(new OctetString("col 2")).addRowValue(new Integer32(24))
 					.addRowValue(new Integer32(500)).addRowValue(new Gauge32(10000000))
@@ -64,12 +64,12 @@ public class MainApp {
 
 			System.out.println(mnger.getAsString(testoid));
 			
-			//Map<String, String> m = mnger.viewTree(new OID(".1.3.6.1.2.1.2.2"));
-			//MainApp.printMap(m);
+			Map<String, String> m = mnger.viewTree(new OID(".1.3.6.1.2.1.2.2"));
+			MainApp.printMap(m);
 			
 
 			System.out.println("---------------");
-			System.out.println(mnger.getAsString(new OID(tmpAdd + ".5.2")));
+			System.out.println(mnger.getAsString(new OID(tmpAdd + ".2.2")));
 			System.out.println("---------------");
 			ResponseEvent res = mnger.set(testoid, new OctetString("hmmm"));
 			System.out.println(res.getResponse());
@@ -78,6 +78,8 @@ public class MainApp {
 			//Thread.sleep(500);
 			//MainApp.printMap(mnger.viewTree(new OID(".1.3.6.1.2.1.2.2")));
 			System.out.println(mnger.getAsString(testoid));
+			
+			System.out.println(mnger.set(new OID(tmpAdd + ".1.1"), new OctetString("5454")).getResponse());
 			
 //			for (int i = 1; i <= 8; i++) {
 //				System.out.println(client.getTableAsStrings(new OID[] { new OID(tmpAdd + "." + i) }));
