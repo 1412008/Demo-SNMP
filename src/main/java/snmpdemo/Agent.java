@@ -86,6 +86,8 @@ public class Agent extends BaseAgent {
 				new OctetString("fullWriteView"), new OctetString("fullNotifyView"), StorageType.nonVolatile);
 		vacmMIB.addViewTreeFamily(new OctetString("fullReadView"), new OID("1.3"), new OctetString(),
 				VacmMIB.VACM_VIEW_INCLUDED, StorageType.nonVolatile);
+		vacmMIB.addViewTreeFamily(new OctetString("fullWriteView"), new OID("1.3"), new OctetString(),
+				VacmMIB.VACM_VIEW_INCLUDED, StorageType.nonVolatile);
 	}
 
 	@Override

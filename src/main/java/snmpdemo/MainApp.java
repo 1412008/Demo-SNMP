@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.agent.mo.MOScalar;
+import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.smi.Gauge32;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OID;
@@ -26,8 +27,6 @@ public class MainApp {
 			Agent agent = new Agent("0.0.0.0/" + port);
 			agent.start();
 //			agent.unregisterManagedObject(agent.getSnmpv2MIB());
-//			agent.registerManagedObject(new MOScalar<Variable>(new OID(".1.3.6.1.2.1.1.1.0"), MOAccessImpl.ACCESS_READ_ONLY,
-//					new OctetString("test string")));
 
 			MOTableBuilder builder = new MOTableBuilder(new OID(".1.3.6.1.2.1.2.2.1"))
 					.addColumnType(SMIConstants.SYNTAX_INTEGER, MOAccessImpl.ACCESS_READ_ONLY)
@@ -56,19 +55,29 @@ public class MainApp {
 
 			agent.registerManagedObject(builder.build());
 
-			SNMPManager client = new SNMPManager("udp:127.0.0.1/" + port);
+			OID testoid = new OID(".1.3.6.1.2.1.2.2.2.1.2");
+			agent.registerManagedObject(new MOScalar<Variable>(testoid, MOAccessImpl.ACCESS_READ_WRITE,
+					new OctetString("test string")));
+			
+			SNMPManager mnger = new SNMPManager("udp:127.0.0.1/" + port);
 			String tmpAdd = ".1.3.6.1.2.1.2.2.1";
+
+			System.out.println(mnger.getAsString(testoid));
 			
-			Map<String, String> m = client.viewTree(new OID(tmpAdd));
+			//Map<String, String> m = mnger.viewTree(new OID(".1.3.6.1.2.1.2.2"));
+			//MainApp.printMap(m);
 			
-			Iterator<Entry<String, String>> iter = m.entrySet().iterator();
-			while (iter.hasNext()) {
-				Entry<String, String> entry = iter.next();
-				System.out.println(entry.getKey() + " " + entry.getValue());
-			}
 
 			System.out.println("---------------");
-			System.out.println(client.getAsString(new OID(tmpAdd + ".5.2")));
+			System.out.println(mnger.getAsString(new OID(tmpAdd + ".5.2")));
+			System.out.println("---------------");
+			ResponseEvent res = mnger.set(testoid, new OctetString("hmmm"));
+			System.out.println(res.getResponse());
+			System.out.println("." + res.getResponse().get(0).getOid() + " " + res.getResponse().get(0).getVariable());
+			System.out.println("---------------");
+			//Thread.sleep(500);
+			//MainApp.printMap(mnger.viewTree(new OID(".1.3.6.1.2.1.2.2")));
+			System.out.println(mnger.getAsString(testoid));
 			
 //			for (int i = 1; i <= 8; i++) {
 //				System.out.println(client.getTableAsStrings(new OID[] { new OID(tmpAdd + "." + i) }));
@@ -79,13 +88,19 @@ public class MainApp {
 //
 //			System.out.println(client.getTableAsStrings(
 //					new OID[] { new OID(tmpAdd + ".3"), new OID(tmpAdd + ".5"), new OID(tmpAdd + ".7") }));
-			
-			// String sysDescr = client.getAsString(new OID(".1.3.6.1.2.1.1.1.0"));
-			// System.out.println(sysDescr);
+
 			agent.stop();
-			client.stop();
+			mnger.stop();
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+	
+	public static void printMap(Map<String, String> m) {
+		Iterator<Entry<String, String>> iter = m.entrySet().iterator();
+		while (iter.hasNext()) {
+			Entry<String, String> entry = iter.next();
+			System.out.println(entry.getKey() + " " + entry.getValue());
 		}
 	}
 

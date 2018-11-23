@@ -56,16 +56,14 @@ public class SNMPManager {
 	}
 
 	public String getAsString(OID oid) throws IOException {
-		ResponseEvent event = get(new OID[] { oid });
+		ResponseEvent event = get(oid);
 		PDU pdu = event.getResponse();
 		return pdu.get(0).getVariable().toString();
 	}
 
-	public ResponseEvent get(OID oids[]) throws IOException {
+	public ResponseEvent get(OID oid) throws IOException {
 		PDU pdu = new PDU();
-		for (OID oid : oids) {
-			pdu.add(new VariableBinding(oid));
-		}
+		pdu.add(new VariableBinding(oid));
 		pdu.setType(PDU.GET);
 		ResponseEvent event = snmp.send(pdu, getTarget(), null);
 		if (event != null) {
@@ -85,6 +83,33 @@ public class SNMPManager {
 		return target;
 	}
 
+	public Map<String, String> viewTree(OID oid) {
+		Map<String, String> result = new TreeMap<String, String>();
+		TreeUtils treeUtils = new TreeUtils(snmp, new DefaultPDUFactory());
+		List<TreeEvent> events = treeUtils.getSubtree(getTarget(), oid);
+		for (TreeEvent treeEvent : events) {
+			VariableBinding[] vbs = treeEvent.getVariableBindings();
+			for (VariableBinding vb : vbs) {
+				result.put("." + vb.getOid().toString(), vb.getVariable().toString());
+			}
+		}
+
+		return result;
+	}
+	
+	public ResponseEvent set(OID oid, OctetString value) throws IOException {
+		PDU pdu = new PDU();
+		Variable var = value;
+		VariableBinding vb = new VariableBinding(oid, var);
+		pdu.add(vb);
+		pdu.setType(PDU.SET);
+		ResponseEvent event = snmp.set(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("SET timed out");
+	}
+	
 	public List<List<String>> getTableAsStrings(OID[] oids) {
 		TableUtils tUtils = new TableUtils(snmp, new DefaultPDUFactory());
 
@@ -103,19 +128,5 @@ public class SNMPManager {
 			}
 		}
 		return list;
-	}
-
-	public Map<String, String> viewTree(OID oid) {
-		Map<String, String> result = new TreeMap();
-		TreeUtils treeUtils = new TreeUtils(snmp, new DefaultPDUFactory());
-		List<TreeEvent> events = treeUtils.getSubtree(getTarget(), oid);
-		for (TreeEvent treeEvent : events) {
-			VariableBinding[] vbs = treeEvent.getVariableBindings();
-			for (VariableBinding vb : vbs) {
-				result.put("." + vb.getOid().toString(), vb.getVariable().toString());
-			}
-		}
-
-		return result;
 	}
 }
