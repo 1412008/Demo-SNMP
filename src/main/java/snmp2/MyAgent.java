@@ -2,7 +2,11 @@ package snmp2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
+import org.snmp4j.CommunityTarget;
 import org.snmp4j.PDU;
 import org.snmp4j.PDUv1;
 import org.snmp4j.Target;
@@ -21,10 +25,14 @@ import org.snmp4j.agent.mo.snmp.StorageType;
 import org.snmp4j.agent.mo.snmp.VacmMIB;
 import org.snmp4j.agent.mo.snmp.SnmpCommunityMIB.SnmpCommunityEntryRow;
 import org.snmp4j.agent.security.MutableVACM;
+import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.MPv3;
+import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModel;
 import org.snmp4j.security.USM;
+import org.snmp4j.smi.Address;
+import org.snmp4j.smi.GenericAddress;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
@@ -32,6 +40,9 @@ import org.snmp4j.smi.UdpAddress;
 import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
+import org.snmp4j.util.DefaultPDUFactory;
+import org.snmp4j.util.TreeEvent;
+import org.snmp4j.util.TreeUtils;
 
 public class MyAgent extends BaseAgent {
 
@@ -117,6 +128,7 @@ public class MyAgent extends BaseAgent {
 		finishInit();
 		run();
 		sendColdStartNotification();
+		System.out.println("init agent");
 	}
 
 	public void sendTrap(PDU pdu, Target target) throws IOException {
@@ -132,6 +144,89 @@ public class MyAgent extends BaseAgent {
 	public boolean setTableValue(MOTable motb, OID oid, OctetString value) {
 		VariableBinding vb = new VariableBinding(oid, value);
 		return motb.setValue(vb);
+	}
+	
+	private Target getTarget() {
+		Address targetAddress = GenericAddress.parse(address);
+		CommunityTarget target = new CommunityTarget();
+		target.setCommunity(new OctetString(communityName));
+		target.setAddress(targetAddress);
+		target.setRetries(2);
+		target.setTimeout(1500);
+		target.setVersion(SnmpConstants.version2c);
+		return target;
+	}
+	
+	public ResponseEvent get(OID oid) throws IOException {
+		PDU pdu = new PDU();
+		pdu.add(new VariableBinding(oid));
+		pdu.setType(PDU.GET);
+		ResponseEvent event = getSession().send(pdu, getTarget(), null);
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("GET timed out");
+	}
+	
+	public ResponseEvent set(OID oid, OctetString value) throws IOException {
+		PDU pdu = new PDU();
+		Variable var = value;
+		VariableBinding vb = new VariableBinding(oid, var);
+		pdu.add(vb);
+		pdu.setType(PDU.SET);
+		ResponseEvent event = getSession().set(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("SET timed out");
+	}
+	
+	public ResponseEvent getNext(OID oid) throws IOException {
+		PDU pdu = new PDU();
+		pdu.add(new VariableBinding(oid));
+		pdu.setType(PDU.GETNEXT);
+		ResponseEvent event = getSession().getNext(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("GETNEXT timed out");
+	}
+	
+	public ResponseEvent getBulk(OID oid, int maxRepetition) throws IOException {
+		PDU pdu = new PDU();
+		pdu.add(new VariableBinding(oid));
+		pdu.setType(PDU.GETBULK);
+		pdu.setMaxRepetitions(maxRepetition);
+        pdu.setNonRepeaters(0);
+		ResponseEvent event = getSession().getBulk(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("GETBULK timed out");
+	}
+	
+	public ResponseEvent inform(OID oid) throws IOException {
+		PDU pdu = new PDU();
+		pdu.add(new VariableBinding(oid));
+		pdu.setType(PDU.INFORM);
+		ResponseEvent event = getSession().inform(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("INFORM timed out");
+	}
+	
+	public Map<String, String> getAsMap(OID oid) {
+		Map<String, String> result = new TreeMap<String, String>();
+		TreeUtils treeUtils = new TreeUtils(getSession(), new DefaultPDUFactory());
+		List<TreeEvent> events = treeUtils.getSubtree(getTarget(), oid);
+		for (TreeEvent treeEvent : events) {
+			VariableBinding[] vbs = treeEvent.getVariableBindings();
+			for (VariableBinding vb : vbs) {
+				result.put("." + vb.getOid().toString(), vb.getVariable().toString());
+			}
+		}
 
+		return result;
 	}
 }

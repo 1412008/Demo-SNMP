@@ -25,7 +25,7 @@ public class MyMain {
 		try {
 			String port = "2001";
 			MyManager mng = new MyManager("127.0.0.1/" + port);
-			MyAgent agent = new MyAgent("0.0.0.0/" + port);
+			MyAgent agent = new MyAgent("127.0.0.1/" + port);
 			agent.unregisterManagedObject(agent.getSnmpv2MIB());
 
 			mng.setMyAgent(agent);
@@ -60,14 +60,16 @@ public class MyMain {
 			// OctetString("hhh")).getResponse();
 			// System.out.println(pdu);
 
-			Map<String, String> map2 = mng.viewTree(new OID(oid));
+			Map<String, String> map2 = mng.getAsMap(new OID(oid));
 
 			printMap(map2);
 
 			System.out.println("-------------------------------------");
 			System.out.println(mng.getNext(new OID(oid + ".3.1.1")).getResponse());
 			System.out.println("-------------------------------------");
-			System.out.println(mng.getBulk(new OID(oid + ".3"), 5).getResponse());
+			System.out.println(mng.getBulk(new OID(oid + ".3"), 3).getResponse());
+			System.out.println("-------------------------------------");
+			//System.out.println(mng.inform(new OID(oid + ".1.1.0")).getResponse());
 			
 			agent.stop();
 			mng.stop();
