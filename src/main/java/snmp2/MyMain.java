@@ -1,6 +1,8 @@
 package snmp2;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -24,17 +26,19 @@ public class MyMain {
 	public static void main(String[] args) {
 		try {
 			String port = "2001";
-			MyManager mng = new MyManager("127.0.0.1/" + port);
 			MyAgent agent = new MyAgent("127.0.0.1/" + port);
 			agent.unregisterManagedObject(agent.getSnmpv2MIB());
-
-			mng.setMyAgent(agent);
+			
+			List<MyAgent> list = new ArrayList<MyAgent>();
+			list.add(agent);
+			
+			MyManager mng = new MyManager(list);
 
 			String oid = "1.3.6.1.2.1.2.2";
 			AgentHelper.createMOs1(agent, oid + ".1", oid + ".2");
 
-			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
-			System.out.println(mng.getAsString(new OID(oid + ".2.2.0")));
+			System.out.println(mng.getAsString(new OID(oid + ".1.1.0"), 0));
+			System.out.println(mng.getAsString(new OID(oid + ".2.2.0"), 0));
 
 //			System.out.println("-------------------------------------");
 //			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
@@ -51,27 +55,26 @@ public class MyMain {
 			@SuppressWarnings("rawtypes")
 			MOTable mo = (MOTable) agent.getServer().getManagedObject(new OID(oid + ".3"), null);
 			
-			System.out.println(mng.setTableValue(mo, new OID(oid + ".3.1.2"), new OctetString("he he")));
+			System.out.println(mng.setTableValue(mo, new OID(oid + ".3.1.2"), new OctetString("he he"), 0));
 			Variable[] variables = new OctetString[] { new OctetString("ss"), new OctetString("ss2"),
 					new OctetString("ss3") };
-			mng.addRowToTable(mo, new OID("2.1"), variables);
+			mng.addRowToTable(mo, new OID("2.1"), variables, 0);
 			// System.out.println(mo);
 			// PDU pdu = mng.set(new OID(oid + ".3.2.1.1"), new
 			// OctetString("hhh")).getResponse();
 			// System.out.println(pdu);
 
-			Map<String, String> map2 = mng.getAsMap(new OID(oid));
+			Map<String, String> map2 = mng.getAsMap(new OID(oid), 0);
 
 			printMap(map2);
 
 			System.out.println("-------------------------------------");
-			System.out.println(mng.getNext(new OID(oid + ".3.1.1")).getResponse());
+			System.out.println(mng.getNext(new OID(oid + ".3.1.1"), 0).getResponse());
 			System.out.println("-------------------------------------");
-			System.out.println(mng.getBulk(new OID(oid + ".3"), 3).getResponse());
+			System.out.println(mng.getBulk(new OID(oid + ".3"), 3, 0).getResponse());
 			System.out.println("-------------------------------------");
 			//System.out.println(mng.inform(new OID(oid + ".1.1.0")).getResponse());
 			
-			agent.stop();
 			mng.stop();
 		} catch (Exception e) {
 			e.printStackTrace();

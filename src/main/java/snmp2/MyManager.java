@@ -1,6 +1,7 @@
 package snmp2;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.snmp4j.PDU;
@@ -12,67 +13,52 @@ import org.snmp4j.smi.Variable;
 
 public class MyManager {
 	
-	private MyAgent myAgent;
+	private List<MyAgent> myAgent;
 
-	public MyAgent getMyAgent() {
-		return myAgent;
-	}
-
-	public void setMyAgent(MyAgent myAgent) {
-		this.myAgent = myAgent;
-	}
-
-	public MyManager(String address) throws IOException {
-		//this.address = address;
-		//start();
-	}
-
-	//@SuppressWarnings("unchecked")
-	//private void start() throws IOException {
-		//transport = new DefaultUdpTransportMapping();
-		//snmp = new Snmp(transport);
-		//transport.listen();
-	//}
-
-	public void stop() throws IOException {
-		//transport.close();
+	public MyManager(List<MyAgent> myAgent) throws IOException {
+		this.myAgent  = myAgent;
 	}
 	
-	public String getAsString(OID oid) throws IOException {
-		ResponseEvent event = myAgent.get(oid);
+	public String getAsString(OID oid, int agent_id) throws IOException {
+		ResponseEvent event = myAgent.get(agent_id).get(oid);
 		PDU pdu = event.getResponse();
-		// System.out.println(pdu);
 		return pdu.get(0).getOid() + " - " + pdu.get(0).getVariable().toString();
 	}
 
-	public Map<String, String> getAsMap(OID oid) {
-		return myAgent.getAsMap(oid);
+	public Map<String, String> getAsMap(OID oid, int agent_id) {
+		return myAgent.get(agent_id).getAsMap(oid);
 	}
 
-	public ResponseEvent set(OID oid, OctetString value) throws IOException {
-		return myAgent.set(oid, value);
+	public ResponseEvent set(OID oid, OctetString value, int agent_id) throws IOException {
+		return myAgent.get(agent_id).set(oid, value);
 	}
 
 	@SuppressWarnings("rawtypes")
-	public boolean setTableValue(MOTable motb, OID oid, OctetString value) {
-		return myAgent.setTableValue(motb, oid, value);
+	public boolean setTableValue(MOTable motb, OID oid, OctetString value, int agent_id) {
+		return myAgent.get(agent_id).setTableValue(motb, oid, value);
 
 	}
 	
 	@SuppressWarnings("rawtypes")
-	public boolean addRowToTable(MOTable motb, OID oid, Variable[] variables) {
-		return myAgent.addRowToTable(motb, oid, variables);
+	public boolean addRowToTable(MOTable motb, OID oid, Variable[] variables, int agent_id) {
+		return myAgent.get(agent_id).addRowToTable(motb, oid, variables);
 	}
 
-	public ResponseEvent getNext(OID oid) throws IOException {
-		return myAgent.getNext(oid);
+	public ResponseEvent getNext(OID oid, int agent_id) throws IOException {
+		return myAgent.get(agent_id).getNext(oid);
 	}
 	
-	public ResponseEvent getBulk(OID oid, int maxRepetition) throws IOException {
-		return myAgent.getBulk(oid, maxRepetition);
+	public ResponseEvent getBulk(OID oid, int maxRepetition, int agent_id) throws IOException {
+		return myAgent.get(agent_id).getBulk(oid, maxRepetition);
 	}
 	
-	public ResponseEvent inform(OID oid) throws IOException {
-		return myAgent.inform(oid);
+	public ResponseEvent inform(OID oid, int agent_id) throws IOException {
+		return myAgent.get(agent_id).inform(oid);
+	}
+
+	public void stop() {
+		for (MyAgent ma : myAgent) {
+			ma.stop();
+		}
 	}
 }
