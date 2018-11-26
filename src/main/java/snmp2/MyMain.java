@@ -75,6 +75,13 @@ public class MyMain {
 			System.out.println("-------------------------------------");
 			//System.out.println(mng.inform(new OID(oid + ".1.1.0")).getResponse());
 			
+			mng.listen();
+			agent.sendV1Trap();
+			Thread.sleep(1000);
+			agent.sendV1Trap();
+			Thread.sleep(2000);
+			agent.sendV1Trap();
+			
 			mng.stop();
 		} catch (Exception e) {
 			e.printStackTrace();

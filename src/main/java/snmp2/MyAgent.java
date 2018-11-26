@@ -34,6 +34,7 @@ import org.snmp4j.security.USM;
 import org.snmp4j.smi.Address;
 import org.snmp4j.smi.GenericAddress;
 import org.snmp4j.smi.Integer32;
+import org.snmp4j.smi.IpAddress;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.UdpAddress;
@@ -131,21 +132,17 @@ public class MyAgent extends BaseAgent {
 		System.out.println("init agent");
 	}
 
-	public void sendTrap(PDU pdu, Target target) throws IOException {
-		this.getSession().trap((PDUv1) pdu, target);
-	}
-	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public boolean addRowToTable(MOTable motb, OID oid, Variable[] variables) {
 		return motb.addRow(new DefaultMOMutableRow2PC(oid, variables));
 	}
-	
+
 	@SuppressWarnings("rawtypes")
 	public boolean setTableValue(MOTable motb, OID oid, OctetString value) {
 		VariableBinding vb = new VariableBinding(oid, value);
 		return motb.setValue(vb);
 	}
-	
+
 	private Target getTarget() {
 		Address targetAddress = GenericAddress.parse(address);
 		CommunityTarget target = new CommunityTarget();
@@ -156,7 +153,7 @@ public class MyAgent extends BaseAgent {
 		target.setVersion(SnmpConstants.version2c);
 		return target;
 	}
-	
+
 	public ResponseEvent get(OID oid) throws IOException {
 		PDU pdu = new PDU();
 		pdu.add(new VariableBinding(oid));
@@ -167,7 +164,7 @@ public class MyAgent extends BaseAgent {
 		}
 		throw new RuntimeException("GET timed out");
 	}
-	
+
 	public ResponseEvent set(OID oid, OctetString value) throws IOException {
 		PDU pdu = new PDU();
 		Variable var = value;
@@ -180,7 +177,7 @@ public class MyAgent extends BaseAgent {
 		}
 		throw new RuntimeException("SET timed out");
 	}
-	
+
 	public ResponseEvent getNext(OID oid) throws IOException {
 		PDU pdu = new PDU();
 		pdu.add(new VariableBinding(oid));
@@ -191,20 +188,20 @@ public class MyAgent extends BaseAgent {
 		}
 		throw new RuntimeException("GETNEXT timed out");
 	}
-	
+
 	public ResponseEvent getBulk(OID oid, int maxRepetition) throws IOException {
 		PDU pdu = new PDU();
 		pdu.add(new VariableBinding(oid));
 		pdu.setType(PDU.GETBULK);
 		pdu.setMaxRepetitions(maxRepetition);
-        pdu.setNonRepeaters(0);
+		pdu.setNonRepeaters(0);
 		ResponseEvent event = getSession().getBulk(pdu, getTarget());
 		if (event != null) {
 			return event;
 		}
 		throw new RuntimeException("GETBULK timed out");
 	}
-	
+
 	public ResponseEvent inform(OID oid) throws IOException {
 		PDU pdu = new PDU();
 		pdu.add(new VariableBinding(oid));
@@ -215,7 +212,7 @@ public class MyAgent extends BaseAgent {
 		}
 		throw new RuntimeException("INFORM timed out");
 	}
-	
+
 	public Map<String, String> getAsMap(OID oid) {
 		Map<String, String> result = new TreeMap<String, String>();
 		TreeUtils treeUtils = new TreeUtils(getSession(), new DefaultPDUFactory());
@@ -228,5 +225,22 @@ public class MyAgent extends BaseAgent {
 		}
 
 		return result;
+	}
+
+	public void sendV1Trap() throws IOException {
+		CommunityTarget comtarget = new CommunityTarget();
+		comtarget.setCommunity(new OctetString(communityName));
+		comtarget.setVersion(SnmpConstants.version1);
+		comtarget.setAddress(new UdpAddress("127.0.0.1/2002"));
+		comtarget.setRetries(2);
+		comtarget.setTimeout(1500);
+
+		PDUv1 pdu = new PDUv1();
+		pdu.setType(PDU.V1TRAP);
+		pdu.setEnterprise(new OID("1.3.6.1.2.1.2.2.3"));
+		pdu.setGenericTrap(PDUv1.ENTERPRISE_SPECIFIC);
+		pdu.setSpecificTrap(1);
+		pdu.setAgentAddress(new IpAddress("127.0.0.1"));
+	    getSession().trap(pdu, comtarget);
 	}
 }

@@ -4,16 +4,35 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.snmp4j.CommandResponder;
+import org.snmp4j.CommandResponderEvent;
+import org.snmp4j.CommunityTarget;
+import org.snmp4j.MessageDispatcher;
+import org.snmp4j.MessageDispatcherImpl;
 import org.snmp4j.PDU;
+import org.snmp4j.Snmp;
+import org.snmp4j.TransportMapping;
 import org.snmp4j.agent.mo.MOTable;
 import org.snmp4j.event.ResponseEvent;
+import org.snmp4j.mp.MPv1;
+import org.snmp4j.mp.MPv2c;
+import org.snmp4j.security.Priv3DES;
+import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.UdpAddress;
 import org.snmp4j.smi.Variable;
+import org.snmp4j.transport.DefaultUdpTransportMapping;
+import org.snmp4j.util.MultiThreadedMessageDispatcher;
+import org.snmp4j.util.ThreadPool;
 
-public class MyManager {
+public class MyManager implements CommandResponder {
 	
 	private List<MyAgent> myAgent;
+	
+	@SuppressWarnings("rawtypes")
+	private TransportMapping transport = null;
+	private ThreadPool threadPool = null;
 
 	public MyManager(List<MyAgent> myAgent) throws IOException {
 		this.myAgent  = myAgent;
@@ -56,9 +75,46 @@ public class MyManager {
 		return myAgent.get(agent_id).inform(oid);
 	}
 
-	public void stop() {
+	public void stop() throws IOException {
 		for (MyAgent ma : myAgent) {
 			ma.stop();
 		}
+		if (transport != null) {
+			transport.close();
+		}
+		if (threadPool != null) {
+			threadPool.stop();
+		}
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public synchronized void listen() throws IOException {
+		threadPool = ThreadPool.create("PoolName", 10);
+	    MessageDispatcher mtDispatcher = new MultiThreadedMessageDispatcher(threadPool, new MessageDispatcherImpl());
+	    
+	    mtDispatcher.addMessageProcessingModel(new MPv1());
+	    mtDispatcher.addMessageProcessingModel(new MPv2c());
+	    
+	    SecurityProtocols.getInstance().addDefaultProtocols();
+	    SecurityProtocols.getInstance().addPrivacyProtocol(new Priv3DES());
+
+	    //Create Target
+	    CommunityTarget target = new CommunityTarget();
+	    target.setCommunity( new OctetString("public"));
+	    
+	    transport = new DefaultUdpTransportMapping(new UdpAddress("127.0.0.1/2002"));
+	    
+	    Snmp snmp = new Snmp(mtDispatcher, transport);
+	    snmp.addCommandResponder(this);
+	    
+	    transport.listen();
+	}
+
+	public void processPdu(CommandResponderEvent event) {
+		PDU pdu = event.getPDU();
+	    if (pdu != null) {
+	    	System.out.println(pdu);
+	    }
+		
 	}
 }
