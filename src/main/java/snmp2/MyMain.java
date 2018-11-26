@@ -28,18 +28,18 @@ public class MyMain {
 			MyAgent agent = new MyAgent("0.0.0.0/" + port);
 			agent.unregisterManagedObject(agent.getSnmpv2MIB());
 
+			mng.setMyAgent(agent);
+
 			String oid = "1.3.6.1.2.1.2.2";
 			AgentHelper.createMOs1(agent, oid + ".1", oid + ".2");
 
 			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
 			System.out.println(mng.getAsString(new OID(oid + ".2.2.0")));
 
-			System.out.println("-------------------------------------");
-
-			mng.setMyAgent(agent);
-			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
-			mng.set(new OID(oid + ".1.1.0"), new OctetString("hello world"));
-			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
+//			System.out.println("-------------------------------------");
+//			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
+//			mng.set(new OID(oid + ".1.1.0"), new OctetString("hello world"));
+//			System.out.println(mng.getAsString(new OID(oid + ".1.1.0")));
 
 			// Map<String, String> map = mng.viewTree(new OID(oid));
 			// printMap(map);
@@ -64,6 +64,11 @@ public class MyMain {
 
 			printMap(map2);
 
+			System.out.println("-------------------------------------");
+			System.out.println(mng.getNext(new OID(oid + ".3.1.1")).getResponse());
+			System.out.println("-------------------------------------");
+			System.out.println(mng.getBulk(new OID(oid + ".3"), 5).getResponse());
+			
 			agent.stop();
 			mng.stop();
 		} catch (Exception e) {

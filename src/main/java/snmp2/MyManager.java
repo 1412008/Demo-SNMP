@@ -128,6 +128,29 @@ public class MyManager {
 		return myAgent.addRowToTable(motb, oid, variables);
 	}
 
+	public ResponseEvent getNext(OID oid) throws IOException {
+		PDU pdu = new PDU();
+		VariableBinding vb = new VariableBinding(oid);
+		pdu.add(vb);
+		pdu.setType(PDU.GETNEXT);
+		ResponseEvent event = snmp.getNext(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("GETNEXT timed out");
+	}
 	
-	
+	public ResponseEvent getBulk(OID oid, int maxRepetition) throws IOException {
+		PDU pdu = new PDU();
+		VariableBinding vb = new VariableBinding(oid);
+		pdu.add(vb);
+		pdu.setType(PDU.GETBULK);
+		pdu.setMaxRepetitions(maxRepetition);
+        pdu.setNonRepeaters(0);
+		ResponseEvent event = snmp.getBulk(pdu, getTarget());
+		if (event != null) {
+			return event;
+		}
+		throw new RuntimeException("GETNEXT timed out");
+	}
 }
