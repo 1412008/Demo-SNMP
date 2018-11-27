@@ -2,6 +2,7 @@ package snmp2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -47,6 +48,7 @@ import org.snmp4j.util.TreeUtils;
 
 public class MyAgent extends BaseAgent {
 
+	private String managerAddress;
 	private String address;
 	private final String communityName = "public";
 	private final String securityName = "spublic";
@@ -228,19 +230,78 @@ public class MyAgent extends BaseAgent {
 	}
 
 	public void sendV1Trap() throws IOException {
+		if (managerAddress == null || managerAddress.isEmpty()) {
+			return;
+		}
 		CommunityTarget comtarget = new CommunityTarget();
 		comtarget.setCommunity(new OctetString(communityName));
 		comtarget.setVersion(SnmpConstants.version1);
-		comtarget.setAddress(new UdpAddress("127.0.0.1/2002"));
+		comtarget.setAddress(new UdpAddress(managerAddress));
 		comtarget.setRetries(2);
-		comtarget.setTimeout(1500);
+		comtarget.setTimeout(1000);
 
 		PDUv1 pdu = new PDUv1();
 		pdu.setType(PDU.V1TRAP);
-		pdu.setEnterprise(new OID("1.3.6.1.2.1.2.2.3"));
+		pdu.setEnterprise(new OID("1.3.6.1.2.1.1.6"));
 		pdu.setGenericTrap(PDUv1.ENTERPRISE_SPECIFIC);
 		pdu.setSpecificTrap(1);
 		pdu.setAgentAddress(new IpAddress("127.0.0.1"));
-	    getSession().trap(pdu, comtarget);
+		pdu.setTimestamp(48 * 60 * 60 * 100);
+		pdu.add(new VariableBinding(new OID("1.3.6.1.2.1.2.2.3"), new OctetString("some error occured!")));
+
+		getSession().trap(pdu, comtarget);
+	}
+
+	public void sendV2Trap() throws IOException {
+		CommunityTarget communityTarget = getManager();
+		if (communityTarget == null) {
+			return;
+		}
+		
+		PDU pdu = new PDU();
+		pdu.add(new VariableBinding(SnmpConstants.sysUpTime, new OctetString(new Date().toString())));
+		pdu.add(new VariableBinding(SnmpConstants.snmpTrapOID, new OID("1.3.6.1.2.1.1.6")));
+		pdu.add(new VariableBinding(SnmpConstants.snmpTrapAddress, new IpAddress("127.0.0.1")));
+
+		// pdu.add(new VariableBinding(new OID("1.3.6.1.2.1.1.6"), new
+		// OctetString("Major")));
+		pdu.add(new VariableBinding(new OID("1.3.6.1.2.1.2.2.3"), new OctetString("some error occured!")));
+		pdu.setType(PDU.NOTIFICATION);
+
+		getSession().send(pdu, communityTarget);
+	}
+
+	public void inform() throws IOException {
+		CommunityTarget communityTarget = getManager();
+		if (communityTarget == null) {
+			return;
+		}
+		
+		PDU pdu = new PDU();
+		pdu.add(new VariableBinding(new OID("1.3.6.1.2.1.2.2.3"), new OctetString("some error occured!")));
+		pdu.add(new VariableBinding(SnmpConstants.sysUpTime, new OctetString(new Date().toString())));
+
+		pdu.setType(PDU.INFORM);
+		
+		//PDU res = getSession().inform(pdu, communityTarget).getResponse();
+		ResponseEvent res = getSession().inform(pdu, communityTarget);
+		System.out.println(res.getResponse());
+	}
+
+	public void setManagerAddress(String managerAddress) {
+		this.managerAddress = managerAddress;
+	}
+
+	public CommunityTarget getManager() {
+		if (managerAddress == null || managerAddress.isEmpty()) {
+			return null;
+		}
+		CommunityTarget comtarget = new CommunityTarget();
+		comtarget.setCommunity(new OctetString(communityName));
+		comtarget.setVersion(SnmpConstants.version2c);
+		comtarget.setAddress(new UdpAddress(managerAddress));
+		comtarget.setRetries(2);
+		comtarget.setTimeout(1000);
+		return comtarget;
 	}
 }

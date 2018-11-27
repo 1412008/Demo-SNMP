@@ -20,9 +20,9 @@ import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 
+@SuppressWarnings("unused")
 public class MyMain {
 
-	@SuppressWarnings("unchecked")
 	public static void main(String[] args) {
 		try {
 			String port = "2001";
@@ -32,8 +32,9 @@ public class MyMain {
 			List<MyAgent> list = new ArrayList<MyAgent>();
 			list.add(agent);
 			
-			MyManager mng = new MyManager(list);
-
+			MyManager mng = new MyManager(list, "127.0.0.1/2002");
+			agent.setManagerAddress("127.0.0.1/2002");
+			
 			String oid = "1.3.6.1.2.1.2.2";
 			AgentHelper.createMOs1(agent, oid + ".1", oid + ".2");
 
@@ -76,11 +77,19 @@ public class MyMain {
 			//System.out.println(mng.inform(new OID(oid + ".1.1.0")).getResponse());
 			
 			mng.listen();
-			agent.sendV1Trap();
+//			agent.sendV1Trap();
+//			Thread.sleep(1000);
+//			agent.sendV1Trap();
+//			Thread.sleep(1500);
+//			agent.sendV1Trap();
+			
+			agent.sendV2Trap();
 			Thread.sleep(1000);
-			agent.sendV1Trap();
+			agent.sendV2Trap();
 			Thread.sleep(2000);
-			agent.sendV1Trap();
+			agent.sendV2Trap();
+			
+			agent.inform();
 			
 			mng.stop();
 		} catch (Exception e) {
